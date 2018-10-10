@@ -86,7 +86,7 @@ def LoG(file, k, sigma, layers, threshold):
         new_cube = np.delete(cube,[13])
         difference = np.ones(len(new_cube)) * DoGs[index] - new_cube
         if min(difference)>0:
-          cv2.circle(img,(y,x),int(1*DoGs[index]),(255,0,0),1)
+          cv2.circle(img,(y,x),int(5),(255,0,0),1)
       
       for index in minimas:
         if np.abs(DoGs[index]) < threshold:
@@ -98,7 +98,7 @@ def LoG(file, k, sigma, layers, threshold):
         new_cube = np.delete(cube,[13])
         difference = np.ones(len(new_cube)) * DoGs[index] - new_cube
         if max(difference)<0:
-          cv2.circle(img,(y,x),int(1*DoGs[index]),(0,255,0),1)
+          cv2.circle(img,(y,x),int(5),(0,255,0),1)
   cv2.imwrite('q1_data/LoG.jpg', img)
 
 if __name__ == '__main__':
@@ -124,48 +124,48 @@ if __name__ == '__main__':
 #           cv2.circle(img,(y,x),2,(255,0,0),1)
 #     cv2.imwrite('q1_data/nms_B_{}.jpg'.format(i), img)
 #Question 1c
-  # LoG('synthetic.png', 1.1, 2.0, 30, 20)
+  LoG('synthetic.png', 1.1, 2.0, 30, 20)
 
-  # Read image
-  im = cv2.imread("synthetic.png")
+  # # Read image
+  # im = cv2.imread("synthetic.png")
 
-  # Setup SimpleBlobDetector parameters.
-  params = cv2.SimpleBlobDetector_Params()
+  # # Setup SimpleBlobDetector parameters.
+  # params = cv2.SimpleBlobDetector_Params()
 
-  # Change thresholds
-  params.minThreshold = 10
-  params.maxThreshold = 200
-
-
-  # Filter by Area.
-  params.filterByArea = True
-  params.minArea = 1500
-
-  # Filter by Circularity
-  params.filterByCircularity = True
-  params.minCircularity = 0.1
-
-  # Filter by Convexity
-  params.filterByConvexity = True
-  params.minConvexity = 0.87
-
-  # Filter by Inertia
-  params.filterByInertia = True
-  params.minInertiaRatio = 0.01
-
-  # Create a detector with the parameters
-  detector = cv2.SimpleBlobDetector(params)
+  # # Change thresholds
+  # params.minThreshold = 10
+  # params.maxThreshold = 200
 
 
-  # Detect blobs.
-  keypoints = detector.detect(im)
+  # # Filter by Area.
+  # params.filterByArea = True
+  # params.minArea = 1500
 
-  # Draw detected blobs as red circles.
-  # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures
-  # the size of the circle corresponds to the size of blob
+  # # Filter by Circularity
+  # params.filterByCircularity = True
+  # params.minCircularity = 0.1
 
-  im_with_keypoints = cv2.drawKeypoints(im, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+  # # Filter by Convexity
+  # params.filterByConvexity = True
+  # params.minConvexity = 0.87
 
-  # Show blobs
-  cv2.imshow("Keypoints", im_with_keypoints)
-  cv2.waitKey(0)
+  # # Filter by Inertia
+  # params.filterByInertia = True
+  # params.minInertiaRatio = 0.01
+
+  # # Create a detector with the parameters
+  # detector = cv2.SimpleBlobDetector(params)
+
+
+  # # Detect blobs.
+  # keypoints = detector.detect(im)
+
+  # # Draw detected blobs as red circles.
+  # # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures
+  # # the size of the circle corresponds to the size of blob
+
+  # im_with_keypoints = cv2.drawKeypoints(im, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+  # # Show blobs
+  # cv2.imshow("Keypoints", im_with_keypoints)
+  # cv2.waitKey(0)
