@@ -4,6 +4,8 @@ import numpy as np
 import skimage.morphology
 from scipy import ndimage
 from scipy.signal import argrelextrema
+import matplotlib.pyplot as plt
+
 np.seterr(divide='ignore', invalid='ignore')
 
 #Question 1a
@@ -64,42 +66,61 @@ def LoG(file, k, sigma, layers, threshold):
   gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
   img_smooth = gray
   sigmas = (np.ones(layers) * k) ** (np.arange(layers))
-  response = np.zeros((img.shape[0], img.shape[1], len(sigmas)))
+  LoG = np.zeros((img.shape[0], img.shape[1], len(sigmas)))
 
+  #Convolve the image with different laplacian of gaussian
   for i in range(len(sigmas)):
     result = ndimage.gaussian_laplace(img_smooth, sigma=sigmas[i])
-    response[:,:,i] = sigmas[i]**2 * result
+    LoG[:,:,i] = sigmas[i]**2 * result
   
-  for x in range(2,img.shape[0]-1):
-    for y in range(2,img.shape[1]-1):
-      DoGs = response[x,y,:]
+
+  #Find local extreme in both scales and space
+  for x in range(1,img.shape[0]-1):
+    for y in range(1,img.shape[1]-1):
+
+      DoGs = LoG[x,y,:]
       maximas = argrelextrema(DoGs, np.greater)[0]
       minimas = argrelextrema(DoGs, np.less)[0]
 
       for index in maximas:
         if np.abs(DoGs[index]) < threshold:
           continue
-        top_layer = response[x-1:x+2,y-1:y+2,index+1].flatten()
-        current_layer = response[x-1:x+2,y-1:y+2,index].flatten()
-        bottom_layer = response[x-1:x+2,y-1:y+2,index-1].flatten()
+        top_layer = LoG[x-1:x+2,y-1:y+2,index+1].flatten()
+        current_layer = LoG[x-1:x+2,y-1:y+2,index].flatten()
+        bottom_layer = LoG[x-1:x+2,y-1:y+2,index-1].flatten()
         cube = np.concatenate((top_layer,current_layer,bottom_layer))
         new_cube = np.delete(cube,[13])
         difference = np.ones(len(new_cube)) * DoGs[index] - new_cube
         if min(difference)>0:
-          cv2.circle(img,(y,x),int(5),(255,0,0),1)
+          cv2.circle(img,(y,x),int(np.sqrt(2)*(index*2)),(255,0,0),1)
       
       for index in minimas:
         if np.abs(DoGs[index]) < threshold:
           continue
-        top_layer = response[x-1:x+2,y-1:y+2,index+1].flatten()
-        current_layer = response[x-1:x+2,y-1:y+2,index].flatten()
-        bottom_layer = response[x-1:x+2,y-1:y+2,index-1].flatten()
+        top_layer = LoG[x-1:x+2,y-1:y+2,index+1].flatten()
+        current_layer = LoG[x-1:x+2,y-1:y+2,index].flatten()
+        bottom_layer = LoG[x-1:x+2,y-1:y+2,index-1].flatten()
         cube = np.concatenate((top_layer,current_layer,bottom_layer))
         new_cube = np.delete(cube,[13])
         difference = np.ones(len(new_cube)) * DoGs[index] - new_cube
         if max(difference)<0:
-          cv2.circle(img,(y,x),int(5),(0,255,0),1)
-  cv2.imwrite('q1_data/LoG.jpg', img)
+          cv2.circle(img,(y,x),int(np.sqrt(2)*(index*2)),(0,255,0),1)
+  cv2.imwrite('q1_data/LoG_{}'.format(file), img)
+
+def SURF(file, threshold):
+  img = cv2.imread(file)
+  surf = cv2.xfeatures2d.SURF_create(threshold)
+  kp,des = surf.detectAndCompute(img,None)
+  img2 = cv2.drawKeypoints(img,kp,None,(0,0,255),4)
+  cv2.imwrite('q1_data/SURF_{}'.format(file), img2)
+
+def SIFT(file, threshold):
+  img = cv2.imread(file)
+  sift = cv2.xfeatures2d.SIFT_create(threshold)
+  kp,des = sift.detectAndCompute(img,None)
+  img2 = cv2.drawKeypoints(img,kp,None,(0,0,255),4)
+  cv2.imwrite('q1_data/SIFT_{}'.format(file), img2)
+
 
 if __name__ == '__main__':
 # #Question 1a
@@ -124,48 +145,11 @@ if __name__ == '__main__':
 #           cv2.circle(img,(y,x),2,(255,0,0),1)
 #     cv2.imwrite('q1_data/nms_B_{}.jpg'.format(i), img)
 #Question 1c
-  LoG('synthetic.png', 1.1, 2.0, 30, 20)
-
-  # # Read image
-  # im = cv2.imread("synthetic.png")
-
-  # # Setup SimpleBlobDetector parameters.
-  # params = cv2.SimpleBlobDetector_Params()
-
-  # # Change thresholds
-  # params.minThreshold = 10
-  # params.maxThreshold = 200
+  # LoG('synthetic.png', 1.1, 1.3, 40, 20)
+  # LoG('building.jpg', 1.1, 1.3, 40, 2500)
+  SURF('building.jpg', 9000)
+  SURF('synthetic.png', 5000)
+  SIFT('building.jpg', 50000)
+  SIFT('synthetic.png', 200)
 
 
-  # # Filter by Area.
-  # params.filterByArea = True
-  # params.minArea = 1500
-
-  # # Filter by Circularity
-  # params.filterByCircularity = True
-  # params.minCircularity = 0.1
-
-  # # Filter by Convexity
-  # params.filterByConvexity = True
-  # params.minConvexity = 0.87
-
-  # # Filter by Inertia
-  # params.filterByInertia = True
-  # params.minInertiaRatio = 0.01
-
-  # # Create a detector with the parameters
-  # detector = cv2.SimpleBlobDetector(params)
-
-
-  # # Detect blobs.
-  # keypoints = detector.detect(im)
-
-  # # Draw detected blobs as red circles.
-  # # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures
-  # # the size of the circle corresponds to the size of blob
-
-  # im_with_keypoints = cv2.drawKeypoints(im, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-
-  # # Show blobs
-  # cv2.imshow("Keypoints", im_with_keypoints)
-  # cv2.waitKey(0)
