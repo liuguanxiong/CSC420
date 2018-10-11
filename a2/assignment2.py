@@ -148,6 +148,7 @@ def match(file1, file2, threshold):
       good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
   img = cv2.drawMatches(img1,kp1,img2,kp2,good,None,flags=2)
   cv2.imwrite('q2_data/match_{}'.format(file1), img)
+  return len(good)
 
 #Question 2c
 def affine(threshold, k, file1, file2):
@@ -306,61 +307,73 @@ def plot_Svsp():
 
 
 if __name__ == '__main__':
-# #Question 1a
-#   R = Harris('building.jpg')
-#   B = Brown('building.jpg')
-# #Question 1b
-#   for i in range(5, 21, 5):
-#     img = cv2.imread('building.jpg')
-#     result = nms(R,i,0.5*R.max())
-#     for x in range(result.shape[0]):
-#       for y in range(result.shape[1]):
-#         if result[x,y] == 255:
-#           cv2.circle(img,(y,x),2,(255,0,0),1)
-#     cv2.imwrite('q1_data/nms_R_{}.jpg'.format(i), img)
+#Question 1a
+  R = Harris('building.jpg')
+  B = Brown('building.jpg')
+#Question 1b
+  for i in range(5, 21, 5):
+    img = cv2.imread('building.jpg')
+    result = nms(R,i,0.5*R.max())
+    for x in range(result.shape[0]):
+      for y in range(result.shape[1]):
+        if result[x,y] == 255:
+          cv2.circle(img,(y,x),2,(255,0,0),1)
+    cv2.imwrite('q1_data/nms_R_{}.jpg'.format(i), img)
 
-#   for i in range(5, 21, 5):
-#     img = cv2.imread('building.jpg')
-#     result = nms(B,i,0.5*B.max())
-#     for x in range(result.shape[0]):
-#       for y in range(result.shape[1]):
-#         if result[x,y] == 255:
-#           cv2.circle(img,(y,x),2,(255,0,0),1)
-#     cv2.imwrite('q1_data/nms_B_{}.jpg'.format(i), img)
+  for i in range(5, 21, 5):
+    img = cv2.imread('building.jpg')
+    result = nms(B,i,0.5*B.max())
+    for x in range(result.shape[0]):
+      for y in range(result.shape[1]):
+        if result[x,y] == 255:
+          cv2.circle(img,(y,x),2,(255,0,0),1)
+    cv2.imwrite('q1_data/nms_B_{}.jpg'.format(i), img)
 
-# # Question 1c
-#   LoG('synthetic.png', 1.1, 1.3, 40, 20)
-#   LoG('building.jpg', 1.1, 1.3, 40, 3000)
-# # Question 1d
-#   SURF('building.jpg', 9000)
-#   SURF('synthetic.png', 5000)
+# Question 1c
+  LoG('synthetic.png', 1.1, 1.3, 40, 20)
+  LoG('building.jpg', 1.1, 1.3, 40, 3000)
+# Question 1d
+  SURF('building.jpg', 9000)
+  SURF('synthetic.png', 5000)
 
-# # Question 2a
-#   SIFT('book.jpeg')
-#   SIFT('findBook.png')
-# # Question 2b
-#   match('book.jpeg','findBook.png',0.48)
-# # Question 2c
-#   ks = [3,5,7,10,15,20]
-#   for i in ks:
-#     A = affine(0.48,i,'book.jpeg','findBook.png')
-#     print(A)
-#     transform(A,'book.jpeg','findBook.png',i)
+# Question 2a
+  SIFT('book.jpeg')
+  SIFT('findBook.png')
+# Question 2b
+  threshold = []
+  num_match = []
+  for i in range(10):
+    threshold.append(0.1*(i+1))
+    num_match.append(match('book.jpeg','findBook.png',0.1*(i+1)))
+  threshold = np.array(threshold)
+  num_match = np.array(num_match)
+  plt.plot(threshold,num_match,linestyle='',marker='.')
+  plt.xticks(threshold)
+  plt.xlabel('Threshold')
+  plt.ylabel('# of matches')
+  plt.show()
 
-# # Question 2d
-#   A = affine(0.48,20,'book.jpeg','findBook.png')
-#   transform(A,'book.jpeg','findBook.png',20)
-# # Question 2e
-#   match_color('colourTemplate.png','colourSearch.png',0.60)
+# Question 2c
+  ks = [3,5,7,10,15,20]
+  for i in ks:
+    A = affine(0.48,i,'book.jpeg','findBook.png')
+    print(A)
+    transform(A,'book.jpeg','findBook.png',i)
+
+# Question 2d
+  A = affine(0.48,20,'book.jpeg','findBook.png')
+  transform(A,'book.jpeg','findBook.png',20)
+# Question 2e
+  match_color('colourTemplate.png','colourSearch.png',0.60)
   A = affine(0.60,20,'colourTemplate.png','colourSearch.png')
   transform(A,'colourTemplate.png','colourSearch.png',20)
 
-# # Question 3a
-#   plot_Svsk()
-# # Question 3b
-#   plot_Svsp()
-# # Question 3c
-#   print(np.log(1-0.99)/np.log(1-0.2**5))
+# Question 3a
+  plot_Svsk()
+# Question 3b
+  plot_Svsp()
+# Question 3c
+  print(np.log(1-0.99)/np.log(1-0.2**5))
 
 
 
