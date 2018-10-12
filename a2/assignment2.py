@@ -147,7 +147,7 @@ def match(file1, file2, threshold):
     if closest_dist/sec_dist <= threshold:
       good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
   img = cv2.drawMatches(img1,kp1,img2,kp2,good,None,flags=2)
-  cv2.imwrite('q2_data/match_{}'.format(file1), img)
+  cv2.imwrite('q2_data/match_threshold_{}_{}'.format(threshold,file1), img)
   return len(good)
 
 #Question 2c
@@ -287,8 +287,11 @@ def affine_colour(threshold, k, file1, file2):
 #Question 3a
 def plot_Svsk():
   k = np.arange(20)+1
+  k1 = np.arange(1,20,0.001)
   S = np.log(1-0.99)/np.log(1-0.7**k)
+  S1 = np.log(1-0.99)/np.log(1-0.7**k1)
   plt.plot(k,S,linestyle='',marker='.')
+  plt.plot(k1,S1,linestyle='--')
   plt.xticks(k)
   plt.xlabel('k')
   plt.ylabel('S')
@@ -296,8 +299,11 @@ def plot_Svsk():
 #Question 3b
 def plot_Svsp():
   p = (np.arange(5)+1)*0.1
+  p1 = np.arange(0.1, 0.5, 0.0001)
   S = np.log(1-0.99)/np.log(1-p**5)
+  S1 = np.log(1-0.99)/np.log(1-p1**5)
   plt.plot(p,S,linestyle='',marker='.')
+  plt.plot(p1,S1,linestyle='--')
   plt.xticks(p)
   plt.xlabel('p')
   plt.ylabel('S')
@@ -317,7 +323,7 @@ if __name__ == '__main__':
     for x in range(result.shape[0]):
       for y in range(result.shape[1]):
         if result[x,y] == 255:
-          cv2.circle(img,(y,x),2,(255,0,0),1)
+          cv2.circle(img,(y,x),2,(0,0,255),1)
     cv2.imwrite('q1_data/nms_R_{}.jpg'.format(i), img)
 
   for i in range(5, 21, 5):
@@ -326,7 +332,7 @@ if __name__ == '__main__':
     for x in range(result.shape[0]):
       for y in range(result.shape[1]):
         if result[x,y] == 255:
-          cv2.circle(img,(y,x),2,(255,0,0),1)
+          cv2.circle(img,(y,x),2,(0,0,255),1)
     cv2.imwrite('q1_data/nms_B_{}.jpg'.format(i), img)
 
 # Question 1c
