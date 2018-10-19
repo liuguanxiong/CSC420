@@ -35,10 +35,37 @@ def find_h_and_w(file):
 
 
     dst = cv2.warpPerspective(img,M,(1000,2200))
-    print(dst)
+
     plt.subplot(121),plt.imshow(img),plt.title('Input')
     plt.subplot(122),plt.imshow(dst),plt.title('Output')
     plt.show()
 
+#Question 2
+def match(file1, file2):
+    img1 = cv2.imread(file1)
+    img2 = cv2.imread(file2)
+    img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    sift = cv2.xfeatures2d.SIFT_create()
+    kp1,d1 = sift.detectAndCompute(img1_gray,None)
+    kp2,d2 = sift.detectAndCompute(img2_gray,None)
+
+    # BFMatcher with default params
+    bf = cv2.BFMatcher()
+    matches = bf.knnMatch(d1,d2,k=2)
+    # Apply ratio test
+    good = []
+    for m,n in matches:
+        if m.distance < 0.75*n.distance:
+            good.append([m])
+    # cv.drawMatchesKnn expects list of lists as matches.
+    img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good[:10],None,flags=2)
+    plt.imshow(img3),plt.show()
+
 if __name__ == "__main__":
+    #Question 1
     find_h_and_w('data/door.jpeg')
+
+    #Question 2a
+    # for i in ['data/im1.jpg','data/im2.jpg','data/im3.jpg']:
+    #     match('data/BookCover.jpg', i)
