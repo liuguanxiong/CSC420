@@ -101,7 +101,8 @@ def match(file1, file2, threshold):
         if closest_dist/sec_dist <= threshold:
             good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
     img = cv2.drawMatches(img1,kp1,img2,kp2,good,None,flags=2)
-    cv2.imwrite('q2/match_threshold_{}_{}'.format(threshold,file2[5:]), img)
+    plt.imshow(img),plt.show()
+    # cv2.imwrite('q2/match_threshold_{}_{}'.format(threshold,file2[5:]), img)
     return len(good)
 
 
@@ -220,6 +221,49 @@ def match_ransac_homo(file1,file2,threshold,inlier_threshold,k):
     return len(good)
 
 #Question 3
+def image_stitching(img1, img2, threshold):
+    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    sift = cv2.xfeatures2d.SIFT_create()
+    kp1,d1 = sift.detectAndCompute(gray1,None)
+    kp2,d2 = sift.detectAndCompute(gray2,None)
+
+    dist = cdist(d1, d2, 'euclidean')
+    dist_copy = dist.copy()
+    good = []
+    for i in range(len(dist_copy)):
+        closest_idx = np.argmin(dist_copy[i])
+        closest_dist = dist_copy[i][closest_idx]
+        dist_copy[i][closest_idx] = np.inf
+        second_idx = np.argmin(dist_copy[i])
+        sec_dist = dist_copy[i][second_idx]
+        if closest_dist/sec_dist <= threshold:
+            good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
+
+    good = sorted(good, key=lambda x:x.distance)
+    src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+    M, mask = cv2.findHomography(src_pts[:4],dst_pts[:4],cv2.RANSAC,5.0)
+
+    img = combine_images(img2,img1,M)
+    return img
+
+def combine_images(img0, img1, h_matrix):
+    points0 = np.array(
+        [[0, 0], [0, img0.shape[0]], [img0.shape[1], img0.shape[0]], [img0.shape[1], 0]], dtype=np.float32)
+    points0 = points0.reshape((-1, 1, 2))
+    points1 = np.array(
+        [[0, 0], [0, img1.shape[0]], [img1.shape[1], img0.shape[0]], [img1.shape[1], 0]], dtype=np.float32)
+    points1 = points1.reshape((-1, 1, 2))
+    points2 = cv2.perspectiveTransform(points1, h_matrix)
+    points = np.concatenate((points0, points2), axis=0)
+    [x_min, y_min] = np.int32(points.min(axis=0).ravel() - 0.5)
+    [x_max, y_max] = np.int32(points.max(axis=0).ravel() + 0.5)
+    H_translation = np.array([[1, 0, -x_min], [0, 1, -y_min], [0, 0, 1]])
+    output_img = cv2.warpPerspective(img1, H_translation.dot(h_matrix), (x_max - x_min, y_max - y_min))
+    output_img[-y_min:img0.shape[0] - y_min, -x_min:img0.shape[1] - x_min] = img0
+    return output_img
 
 if __name__ == "__main__":
     #Question 1
@@ -238,7 +282,20 @@ if __name__ == "__main__":
     # minimum_iterations(percent_inlier)
 
     #Question 2c
-    match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+    # match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
 
     #Question 2d
     # match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+    
+    #Question 3
+    img = cv2.imread('data/landscape_1.jpg')
+    for i in range(2,3):
+        print(i)
+        img2 = cv2.imread('data/landscape_{}.jpg'.format(i))
+        img = image_stitching(img,img2,0.5)
+    cv2.imwrite('./test1.jpg',img)
+    # im = cv2.imread('./test.jpg')
+    # ik = cv2.imread('./data/landscape_3.jpg')
+    # ij = image_stitching(im,ik,0.3)
+    # cv2.imwrite('./test.jpg',ij)
+    
