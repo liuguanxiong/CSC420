@@ -3,6 +3,10 @@ import cv2
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
 from scipy.linalg import eigh
+import os
+
+root = os.path.dirname(os.path.abspath(__file__))
+print(root)
 
 #Question 1
 
@@ -40,10 +44,7 @@ def find_h_and_w(file):
     w, v = eigh(np.dot(A.T,A))
     min_idx = np.argmin(w)
     M = v[:,min_idx].reshape(3,3)
-    print(w)
-    print(v)
-    print(M)
-
+   
     # Transform paper into its actual size scale and use the scale to determine door's dimension
     # M = cv2.getPerspectiveTransform(fro, to)
     width = np.linalg.norm(cv2.perspectiveTransform(door_left_top.astype(np.float32),M)-cv2.perspectiveTransform(door_right_top.astype(np.float32),M))
@@ -82,9 +83,11 @@ def find_h_and_w(file):
 def match(file1, file2, threshold):
     img1 = cv2.imread(file1)
     img2 = cv2.imread(file2)
+    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
     sift = cv2.xfeatures2d.SIFT_create()
-    kp1,d1 = sift.detectAndCompute(img1,None)
-    kp2,d2 = sift.detectAndCompute(img2,None)
+    kp1,d1 = sift.detectAndCompute(gray1,None)
+    kp2,d2 = sift.detectAndCompute(gray2,None)
 
     dist = cdist(d1, d2, 'euclidean')
     dist_copy = dist.copy()
@@ -98,15 +101,21 @@ def match(file1, file2, threshold):
         if closest_dist/sec_dist <= threshold:
             good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
     img = cv2.drawMatches(img1,kp1,img2,kp2,good,None,flags=2)
-    plt.imshow(img),plt.show()
+    # plt.imshow(img)
+    # plt.show()
+    cv2.imwrite('C:/Users/gliu3/Desktop/CSC420/a3/q2/match_threshold_{}_{}'.format(threshold,file2), img)
     return len(good)
 
 #Question 3
 
 if __name__ == "__main__":
     #Question 1
-    find_h_and_w('data/door.jpeg')
+    # find_h_and_w('data/door.jpeg')
 
     #Question 2a
-    # for i in ['data/im1.jpg','data/im2.jpg','data/im3.jpg']:
-        # match('data/BookCover.jpeg', i, 0.7)
+    outlier = [8,11,2]
+    image_files = ['C:/Users/gliu3/Desktop/CSC420/a3/data/im1.jpg','C:/Users/gliu3/Desktop/CSC420/a3/data/im2.jpg','C:/Users/gliu3/Desktop/CSC420/a3/data/im3.jpg']
+    for i in range(len(image_files)):
+        matches = match('C:/Users/gliu3/Desktop/CSC420/a3/data/BookCover.jpg', image_files[i], 0.85)
+        percent_outlier = outlier[i]/matches
+        print(percent_outlier)
