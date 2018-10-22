@@ -101,9 +101,9 @@ def match(file1, file2, threshold):
         if closest_dist/sec_dist <= threshold:
             good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
     img = cv2.drawMatches(img1,kp1,img2,kp2,good,None,flags=2)
-    # plt.imshow(img)
-    # plt.show()
-    cv2.imwrite('C:/Users/gliu3/Desktop/CSC420/a3/q2/match_threshold_{}_{}'.format(threshold,file2), img)
+    plt.imshow(img)
+    plt.show()
+    # cv2.imwrite('C:/Users/gliu3/Desktop/CSC420/a3/q2/match_threshold_{}_{}'.format(threshold,file2), img)
     return len(good)
 
 #Question 3
