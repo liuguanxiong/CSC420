@@ -3,10 +3,7 @@ import cv2
 import matplotlib.pyplot as plt
 from scipy.spatial.distance import cdist
 from scipy.linalg import eigh
-import os
 
-root = os.path.dirname(os.path.abspath(__file__))
-print(root)
 
 #Question 1
 
@@ -241,13 +238,71 @@ def image_stitching(img1, img2, threshold):
             good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
 
     good = sorted(good, key=lambda x:x.distance)
-    src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
-    dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+    dst_pts= np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    src_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
 
-    M, mask = cv2.findHomography(src_pts[:4],dst_pts[:4],cv2.RANSAC,5.0)
+    M, mask = cv2.findHomography(src_pts,dst_pts,cv2.RANSAC,5.0)
 
-    img = combine_images(img2,img1,M)
-    return img
+    # result = cv2.warpPerspective(img2, M, (img2.shape[1]+img1.shape[1],max(img2.shape[0],img1.shape[0])))
+    # plt.imshow(result),plt.show()
+    # result[0:img1.shape[0],0:img1.shape[1]] = img1
+    # plt.imshow(result),plt.show()
+
+    # result = combine_images(img1,img2,M)
+    # result = mix_match(img1,result)
+    result = warpTwoImages(img1,img2,M)
+
+    return result
+
+def warpTwoImages(img1, img2, H):
+    '''warp img2 to img1 with homograph H'''
+    h1,w1 = img1.shape[:2]
+    h2,w2 = img2.shape[:2]
+    pts1 = np.float32([[0,0],[0,h1],[w1,h1],[w1,0]]).reshape(-1,1,2)
+    pts2 = np.float32([[0,0],[0,h2],[w2,h2],[w2,0]]).reshape(-1,1,2)
+    pts2_ = cv2.perspectiveTransform(pts2, H)
+    pts = np.concatenate((pts1, pts2_), axis=0)
+    [xmin, ymin] = np.int32(pts.min(axis=0).ravel() - 0.5)
+    [xmax, ymax] = np.int32(pts.max(axis=0).ravel() + 0.5)
+    t = [-xmin,-ymin]
+    Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
+    result = cv2.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin))
+
+    plt.subplot(121),plt.imshow(img1),plt.title('Input')
+    plt.subplot(122),plt.imshow(result),plt.title('Output')
+    plt.show()
+
+    result[t[1]:h1+t[1],t[0]:w1+t[0]] = img1
+    return result
+
+def mix_match(leftImage, warpedImage):
+    i1y, i1x = leftImage.shape[:2]
+    i2y, i2x = warpedImage.shape[:2]
+    for i in range(0, i1x):
+        for j in range(0, i1y):
+            try:
+                if not np.array_equal(leftImage[j,i],np.array([0,0,0])):
+                    bl,gl,rl = leftImage[j,i]                               
+                    warpedImage[j, i] = [bl,gl,rl]
+                # if(np.array_equal(leftImage[j,i],np.array([0,0,0])) and  \
+                #     np.array_equal(warpedImage[j,i],np.array([0,0,0]))):
+                #     # print "BLACK"
+                #     # instead of just putting it with black, 
+                #     # take average of all nearby values and avg it.
+                #     warpedImage[j,i] = [0, 0, 0]
+                # else:
+                #     if(np.array_equal(warpedImage[j,i],[0,0,0])):
+                #         # print "PIXEL"
+                #         warpedImage[j,i] = leftImage[j,i]
+                #     else:
+                #         if not np.array_equal(leftImage[j,i], [0,0,0]):
+                #             bl,gl,rl = leftImage[j,i]                               
+                #             warpedImage[j, i] = [bl,gl,rl]
+            except:
+                pass
+    # cv2.imshow("waRPED mix", warpedImage)
+    # cv2.waitKey()
+    return warpedImage
 
 def combine_images(img0, img1, h_matrix):
     points0 = np.array(
@@ -289,11 +344,11 @@ if __name__ == "__main__":
     
     #Question 3
     img = cv2.imread('data/landscape_1.jpg')
-    for i in range(2,3):
+    for i in range(2,7):
         print(i)
         img2 = cv2.imread('data/landscape_{}.jpg'.format(i))
-        img = image_stitching(img,img2,0.5)
-    cv2.imwrite('./test1.jpg',img)
+        img = image_stitching(img,img2,0.3)
+        cv2.imwrite('./test1.jpg',img)
     # im = cv2.imread('./test.jpg')
     # ik = cv2.imread('./data/landscape_3.jpg')
     # ij = image_stitching(im,ik,0.3)
