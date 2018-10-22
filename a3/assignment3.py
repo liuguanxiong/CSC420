@@ -157,9 +157,65 @@ def match_ransac_affine(file1,file2,threshold,inlier_threshold,k):
             best_performance = performance
             best_matrix = matrix
         iteration += 1
-    print(best_matrix)
 
-    img = cv2.warpAffine(img1,best_matrix,(400,400))
+    img = cv2.warpAffine(img1,best_matrix,(img2.shape[1],img2.shape[0]))
+    for x in range(img.shape[0]):
+        for y in range(img.shape[1]):
+            if (img[x,y] == [0,0,0]).all():
+                img[x,y] = img2[x,y]
+    plt.imshow(img),plt.show()
+    return len(good)
+
+#Question 2d
+def match_ransac_homo(file1,file2,threshold,inlier_threshold,k):
+    img1 = cv2.imread(file1)
+    img2 = cv2.imread(file2)
+    gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+    gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    sift = cv2.xfeatures2d.SIFT_create()
+    kp1,d1 = sift.detectAndCompute(gray1,None)
+    kp2,d2 = sift.detectAndCompute(gray2,None)
+
+    dist = cdist(d1, d2, 'euclidean')
+    dist_copy = dist.copy()
+    good = []
+    for i in range(len(dist_copy)):
+        closest_idx = np.argmin(dist_copy[i])
+        closest_dist = dist_copy[i][closest_idx]
+        dist_copy[i][closest_idx] = np.inf
+        second_idx = np.argmin(dist_copy[i])
+        sec_dist = dist_copy[i][second_idx]
+        if closest_dist/sec_dist <= threshold:
+            good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
+
+    src_pts = np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
+    dst_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
+
+    iteration = 0
+    best_performance = 0
+    best_matrix = None
+    while iteration < k:
+        maybe_inliers_idx = np.random.choice(len(src_pts),4,replace=False)
+        maybe_inliers_src = src_pts[maybe_inliers_idx]
+        maybe_inliers_dst = dst_pts[maybe_inliers_idx]
+        matrix = cv2.getPerspectiveTransform(maybe_inliers_src,maybe_inliers_dst)
+        num_of_inliers = 0
+        for i in range(len(src_pts)):
+            transformed = cv2.perspectiveTransform(np.array([src_pts[i]],dtype=np.float32),matrix)
+            distance = np.linalg.norm(transformed-dst_pts[i][0])
+            if distance < inlier_threshold:
+                num_of_inliers += 1
+        performance = num_of_inliers/len(src_pts)
+        if performance > best_performance:
+            best_performance = performance
+            best_matrix = matrix
+        iteration += 1
+        
+    img = cv2.warpPerspective(img1,best_matrix,(img2.shape[1],img2.shape[0]))
+    for x in range(img.shape[0]):
+        for y in range(img.shape[1]):
+            if (img[x,y] == [0,0,0]).all():
+                img[x,y] = img2[x,y]
     plt.imshow(img),plt.show()
     return len(good)
 
@@ -183,3 +239,6 @@ if __name__ == "__main__":
 
     #Question 2c
     match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+
+    #Question 2d
+    # match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
