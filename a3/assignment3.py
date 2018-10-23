@@ -236,21 +236,13 @@ def image_stitching(img1, img2, threshold):
         sec_dist = dist_copy[i][second_idx]
         if closest_dist/sec_dist <= threshold:
             good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
-
     good = sorted(good, key=lambda x:x.distance)
     dst_pts= np.float32([kp1[m.queryIdx].pt for m in good]).reshape(-1, 1, 2)
     src_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
 
-    M, mask = cv2.findHomography(src_pts,dst_pts,cv2.RANSAC,5.0)
-
-    # result = cv2.warpPerspective(img2, M, (img2.shape[1]+img1.shape[1],max(img2.shape[0],img1.shape[0])))
-    # plt.imshow(result),plt.show()
-    # result[0:img1.shape[0],0:img1.shape[1]] = img1
-    # plt.imshow(result),plt.show()
-
-    # result = combine_images(img1,img2,M)
-    # result = mix_match(img1,result)
+    M, mask = cv2.findHomography(src_pts,dst_pts,cv2.RANSAC,2.0)
     result = warpTwoImages(img1,img2,M)
+    # result = warpTwoImages_poisson(img1,img2,M)
 
     return result
 
@@ -267,58 +259,36 @@ def warpTwoImages(img1, img2, H):
     t = [-xmin,-ymin]
     Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
     result = cv2.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin))
-
-    plt.subplot(121),plt.imshow(img1),plt.title('Input')
-    plt.subplot(122),plt.imshow(result),plt.title('Output')
-    plt.show()
-
     result[t[1]:h1+t[1],t[0]:w1+t[0]] = img1
+
+    result = result[:,:-10,:]
+
     return result
 
-def mix_match(leftImage, warpedImage):
-    i1y, i1x = leftImage.shape[:2]
-    i2y, i2x = warpedImage.shape[:2]
-    for i in range(0, i1x):
-        for j in range(0, i1y):
-            try:
-                if not np.array_equal(leftImage[j,i],np.array([0,0,0])):
-                    bl,gl,rl = leftImage[j,i]                               
-                    warpedImage[j, i] = [bl,gl,rl]
-                # if(np.array_equal(leftImage[j,i],np.array([0,0,0])) and  \
-                #     np.array_equal(warpedImage[j,i],np.array([0,0,0]))):
-                #     # print "BLACK"
-                #     # instead of just putting it with black, 
-                #     # take average of all nearby values and avg it.
-                #     warpedImage[j,i] = [0, 0, 0]
-                # else:
-                #     if(np.array_equal(warpedImage[j,i],[0,0,0])):
-                #         # print "PIXEL"
-                #         warpedImage[j,i] = leftImage[j,i]
-                #     else:
-                #         if not np.array_equal(leftImage[j,i], [0,0,0]):
-                #             bl,gl,rl = leftImage[j,i]                               
-                #             warpedImage[j, i] = [bl,gl,rl]
-            except:
-                pass
-    # cv2.imshow("waRPED mix", warpedImage)
-    # cv2.waitKey()
-    return warpedImage
+def warpTwoImages_poisson(img1, img2, H):
+    '''warp img2 to img1 with homograph H'''
+    h1,w1 = img1.shape[:2]
+    h2,w2 = img2.shape[:2]
+    pts1 = np.float32([[0,0],[0,h1],[w1,h1],[w1,0]]).reshape(-1,1,2)
+    pts2 = np.float32([[0,0],[0,h2],[w2,h2],[w2,0]]).reshape(-1,1,2)
+    pts2_ = cv2.perspectiveTransform(pts2, H)
+    pts = np.concatenate((pts1, pts2_), axis=0)
+    [xmin, ymin] = np.int32(pts.min(axis=0).ravel() - 0.5)
+    [xmax, ymax] = np.int32(pts.max(axis=0).ravel() + 0.5)
+    t = [-xmin,-ymin]
+    Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
+    result = cv2.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin))
+    mask = 255 * np.ones(img1.shape,img1.dtype)
+    center = (t[0]+w1//2,t[1]+h1//2)
+    # plt.imshow(result),plt.show()
+    normal_clone = cv2.seamlessClone(img1, result, mask, center, cv2.NORMAL_CLONE)
+    mixed_clone = cv2.seamlessClone(img1, result, mask, center, cv2.MIXED_CLONE)
+    # plt.imshow(normal_clone),plt.show()
+    # plt.imshow(mixed_clone),plt.show()
+    result = mixed_clone
 
-def combine_images(img0, img1, h_matrix):
-    points0 = np.array(
-        [[0, 0], [0, img0.shape[0]], [img0.shape[1], img0.shape[0]], [img0.shape[1], 0]], dtype=np.float32)
-    points0 = points0.reshape((-1, 1, 2))
-    points1 = np.array(
-        [[0, 0], [0, img1.shape[0]], [img1.shape[1], img0.shape[0]], [img1.shape[1], 0]], dtype=np.float32)
-    points1 = points1.reshape((-1, 1, 2))
-    points2 = cv2.perspectiveTransform(points1, h_matrix)
-    points = np.concatenate((points0, points2), axis=0)
-    [x_min, y_min] = np.int32(points.min(axis=0).ravel() - 0.5)
-    [x_max, y_max] = np.int32(points.max(axis=0).ravel() + 0.5)
-    H_translation = np.array([[1, 0, -x_min], [0, 1, -y_min], [0, 0, 1]])
-    output_img = cv2.warpPerspective(img1, H_translation.dot(h_matrix), (x_max - x_min, y_max - y_min))
-    output_img[-y_min:img0.shape[0] - y_min, -x_min:img0.shape[1] - x_min] = img0
-    return output_img
+    return result
+
 
 if __name__ == "__main__":
     #Question 1
@@ -343,12 +313,24 @@ if __name__ == "__main__":
     # match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
     
     #Question 3
-    img = cv2.imread('data/landscape_1.jpg')
-    for i in range(2,7):
+
+    img_middle = cv2.imread('./data/landscape_5.jpg')
+    queue1 = []
+    for i in [(1,2),(3,4),(6,7),(8,9)]:
         print(i)
-        img2 = cv2.imread('data/landscape_{}.jpg'.format(i))
-        img = image_stitching(img,img2,0.3)
-        cv2.imwrite('./test1.jpg',img)
+        img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
+        img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
+        img = image_stitching(img1,img2,0.5)
+        queue1.append(img)
+    print(len(queue1))
+    queue2 = []
+    for i in range(2):
+        img = image_stitching(queue1[2*i],queue1[2*i+1],0.5)
+        queue2.append(img)
+    img = image_stitching(img_middle,queue2[0],0.5)
+    img = image_stitching(img,queue2[1],0.5)
+    cv2.imwrite('./test1.jpg',img)
+    
     # im = cv2.imread('./test.jpg')
     # ik = cv2.imread('./data/landscape_3.jpg')
     # ij = image_stitching(im,ik,0.3)
