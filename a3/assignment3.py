@@ -283,9 +283,9 @@ def warpTwoImages_poisson(img1, img2, H):
     # plt.imshow(result),plt.show()
     normal_clone = cv2.seamlessClone(img1, result, mask, center, cv2.NORMAL_CLONE)
     mixed_clone = cv2.seamlessClone(img1, result, mask, center, cv2.MIXED_CLONE)
-    # plt.imshow(normal_clone),plt.show()
+    plt.imshow(normal_clone),plt.show()
     # plt.imshow(mixed_clone),plt.show()
-    result = mixed_clone
+    result = normal_clone
 
     return result
 
