@@ -49,34 +49,23 @@ def find_h_and_w(file):
     print("width:{}mm".format(width))
     print("height:{}mm".format(height))  
 
+    blank = np.zeros((img.shape[0],img.shape[1],img.shape[2]))
+    h1,w1 = blank.shape[:2]
+    h2,w2 = img.shape[:2]
+    pts1 = np.float32([[0,0],[0,h1],[w1,h1],[w1,0]]).reshape(-1,1,2)
+    pts2 = np.float32([[0,0],[0,h2],[w2,h2],[w2,0]]).reshape(-1,1,2)
+    pts2_ = cv2.perspectiveTransform(pts2, M)
+    pts = np.concatenate((pts1, pts2_), axis=0)
+    [xmin, ymin] = np.int32(pts.min(axis=0).ravel() - 0.5)
+    [xmax, ymax] = np.int32(pts.max(axis=0).ravel() + 0.5)
+    t = [-xmin,-ymin]
+    Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
+    dst = cv2.warpPerspective(img, Ht.dot(M), (xmax-xmin, ymax-ymin))
 
-    dst = cv2.warpPerspective(img,M,(1000,2200))
-
-    plt.subplot(121),plt.imshow(img),plt.title('Input')
-    plt.subplot(122),plt.imshow(dst),plt.title('Output')
-    plt.show()
+    dst = dst[:-700,:-500,:]
+    cv2.imwrite('./q1/transformed_door.jpg',dst)
 
 #Question 2a
-# def match(file1, file2):
-#     img1 = cv2.imread(file1)
-#     img2 = cv2.imread(file2)
-#     img1_gray = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
-#     img2_gray = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
-#     sift = cv2.xfeatures2d.SIFT_create()
-#     kp1,d1 = sift.detectAndCompute(img1_gray,None)
-#     kp2,d2 = sift.detectAndCompute(img2_gray,None)
-
-#     # BFMatcher with default params
-#     bf = cv2.BFMatcher()
-#     matches = bf.knnMatch(d1,d2,k=2)
-#     # Apply ratio test
-#     good = []
-#     for m,n in matches:
-#         if m.distance < 0.75*n.distance:
-#             good.append([m])
-#     # cv.drawMatchesKnn expects list of lists as matches.
-#     img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good[:10],None,flags=2)
-#     plt.imshow(img3),plt.show()
 def match(file1, file2, threshold):
     img1 = cv2.imread(file1)
     img2 = cv2.imread(file2)
@@ -98,8 +87,7 @@ def match(file1, file2, threshold):
         if closest_dist/sec_dist <= threshold:
             good.append(cv2.DMatch(i,closest_idx,0,closest_dist))
     img = cv2.drawMatches(img1,kp1,img2,kp2,good,None,flags=2)
-    plt.imshow(img),plt.show()
-    # cv2.imwrite('q2/match_threshold_{}_{}'.format(threshold,file2[5:]), img)
+    cv2.imwrite('q2/match_threshold_{}_{}'.format(threshold,file2[5:]), img)
     return len(good)
 
 
@@ -292,47 +280,46 @@ def warpTwoImages_poisson(img1, img2, H):
 
 if __name__ == "__main__":
     #Question 1
-    # find_h_and_w('data/door.jpeg')
+    find_h_and_w('data/door.jpeg')
 
     #Question 2a
-    # outlier = [8,11,2]
-    # image_files = ['data/im1.jpg','data/im2.jpg','data/im3.jpg']
-    # percent_inlier = []
-    # for i in range(len(image_files)):
-    #     matches = match('data/BookCover.jpg', image_files[i], 0.85)
-    #     percent_outlier = outlier[i]/matches
-    #     percent_inlier.append(1-percent_outlier)
+    outlier = [8,11,2]
+    image_files = ['data/im1.jpg','data/im2.jpg','data/im3.jpg']
+    percent_inlier = []
+    for i in range(len(image_files)):
+        matches = match('data/BookCover.jpg', image_files[i], 0.85)
+        percent_outlier = outlier[i]/matches
+        percent_inlier.append(1-percent_outlier)
 
     #Question 2b
-    # minimum_iterations(percent_inlier)
+    minimum_iterations(percent_inlier)
 
     #Question 2c
-    # match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+    match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
 
     #Question 2d
-    # match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+    match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
     
+    #Question 2e
+    match_ransac_affine('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+
     #Question 3
 
+
+    #Question 4
     img_middle = cv2.imread('./data/landscape_5.jpg')
     queue1 = []
     for i in [(1,2),(3,4),(6,7),(8,9)]:
-        print(i)
         img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
         img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
         img = image_stitching(img1,img2,0.5)
         queue1.append(img)
-    print(len(queue1))
     queue2 = []
     for i in range(2):
         img = image_stitching(queue1[2*i],queue1[2*i+1],0.5)
         queue2.append(img)
     img = image_stitching(img_middle,queue2[0],0.5)
     img = image_stitching(img,queue2[1],0.5)
-    cv2.imwrite('./test1.jpg',img)
+    cv2.imwrite('./q4/no_blending_panorama.jpg',img)
     
-    # im = cv2.imread('./test.jpg')
-    # ik = cv2.imread('./data/landscape_3.jpg')
-    # ij = image_stitching(im,ik,0.3)
-    # cv2.imwrite('./test.jpg',ij)
     
