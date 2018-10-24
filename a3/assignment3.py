@@ -279,47 +279,49 @@ def warpTwoImages_poisson(img1, img2, H):
 
 
 if __name__ == "__main__":
-    #Question 1
-    find_h_and_w('data/door.jpeg')
+    # #Question 1
+    # find_h_and_w('data/door.jpeg')
 
-    #Question 2a
-    outlier = [8,11,2]
-    image_files = ['data/im1.jpg','data/im2.jpg','data/im3.jpg']
-    percent_inlier = []
-    for i in range(len(image_files)):
-        matches = match('data/BookCover.jpg', image_files[i], 0.85)
-        percent_outlier = outlier[i]/matches
-        percent_inlier.append(1-percent_outlier)
+    # #Question 2a
+    # outlier = [8,11,2]
+    # image_files = ['data/im1.jpg','data/im2.jpg','data/im3.jpg']
+    # percent_inlier = []
+    # for i in range(len(image_files)):
+    #     matches = match('data/BookCover.jpg', image_files[i], 0.78)
+    #     percent_outlier = outlier[i]/matches
+    #     percent_inlier.append(1-percent_outlier)
 
-    #Question 2b
-    minimum_iterations(percent_inlier)
+    # percent_inlier=[0.5,0.5,0.5]
+    # #Question 2b
+    # minimum_iterations(percent_inlier)
 
-    #Question 2c
-    match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+    for i in range(5):
+        #Question 2c
+        match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
 
-    #Question 2d
-    match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
-    
-    #Question 2e
-    match_ransac_affine('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+        #Question 2d
+        match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
+        
+        #Question 2e
+        # match_ransac_affine('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
 
     #Question 3
 
 
-    #Question 4
-    img_middle = cv2.imread('./data/landscape_5.jpg')
-    queue1 = []
-    for i in [(1,2),(3,4),(6,7),(8,9)]:
-        img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
-        img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
-        img = image_stitching(img1,img2,0.5)
-        queue1.append(img)
-    queue2 = []
-    for i in range(2):
-        img = image_stitching(queue1[2*i],queue1[2*i+1],0.5)
-        queue2.append(img)
-    img = image_stitching(img_middle,queue2[0],0.5)
-    img = image_stitching(img,queue2[1],0.5)
-    cv2.imwrite('./q4/no_blending_panorama.jpg',img)
+    # #Question 4
+    # img_middle = cv2.imread('./data/landscape_5.jpg')
+    # queue1 = []
+    # for i in [(1,2),(3,4),(6,7),(8,9)]:
+    #     img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
+    #     img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
+    #     img = image_stitching(img1,img2,0.5)
+    #     queue1.append(img)
+    # queue2 = []
+    # for i in range(2):
+    #     img = image_stitching(queue1[2*i],queue1[2*i+1],0.5)
+    #     queue2.append(img)
+    # img = image_stitching(img_middle,queue2[0],0.5)
+    # img = image_stitching(img,queue2[1],0.5)
+    # cv2.imwrite('./q4/no_blending_panorama.jpg',img)
     
     
