@@ -229,8 +229,8 @@ def image_stitching(img1, img2, threshold):
     src_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
 
     M, mask = cv2.findHomography(src_pts,dst_pts,cv2.RANSAC,2.0)
-    result = warpTwoImages(img1,img2,M)
-    # result = warpTwoImages_poisson(img1,img2,M)
+    # result = warpTwoImages(img1,img2,M)
+    result = warpTwoImages_blending(img1,img2,M)
 
     return result
 
@@ -253,7 +253,7 @@ def warpTwoImages(img1, img2, H):
 
     return result
 
-def warpTwoImages_poisson(img1, img2, H):
+def warpTwoImages_blending(img1, img2, H):
     '''warp img2 to img1 with homograph H'''
     h1,w1 = img1.shape[:2]
     h2,w2 = img2.shape[:2]
@@ -266,14 +266,29 @@ def warpTwoImages_poisson(img1, img2, H):
     t = [-xmin,-ymin]
     Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
     result = cv2.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin))
-    mask = 255 * np.ones(img1.shape,img1.dtype)
-    center = (t[0]+w1//2,t[1]+h1//2)
-    # plt.imshow(result),plt.show()
-    normal_clone = cv2.seamlessClone(img1, result, mask, center, cv2.NORMAL_CLONE)
-    mixed_clone = cv2.seamlessClone(img1, result, mask, center, cv2.MIXED_CLONE)
-    plt.imshow(normal_clone),plt.show()
-    # plt.imshow(mixed_clone),plt.show()
-    result = normal_clone
+    img2_transformed = result.copy()
+    result[t[1]:h1+t[1],t[0]:w1+t[0]] = img1
+
+    h = h1
+    w = int(np.abs(t[0]+w1-pts2_[0][0][0]))+1
+    left_border = int(min(t[0]+w1,pts2_[0][0][0]))
+    right_border = int(max(t[0]+w1,pts2_[0][0][0]))
+    print(w)
+    print(right_border-left_border)
+    alpha_mask = np.zeros((h,min(img1.shape[1],w)))
+    alpha_mask[:,0:int(w/2)] = 1.0
+    blur_alpha_mask = cv2.GaussianBlur(alpha_mask,(7,7),0)
+    blur_alpha_mask = blur_alpha_mask[:,:,None]
+
+    print(blur_alpha_mask.shape)
+    left = img1[:,-w:,:]*blur_alpha_mask
+    right = img2_transformed[t[1]:t[1]+h1,left_border:right_border,:]*(1.0-blur_alpha_mask)
+    result[t[1]:h1+t[1],left_border:right_border,:] = right+left
+
+
+    result = result[:,:-10,:]
+    plt.imshow(result),plt.show()
+
 
     return result
 
@@ -295,12 +310,12 @@ if __name__ == "__main__":
     # #Question 2b
     # minimum_iterations(percent_inlier)
 
-    for i in range(5):
+    # for i in range(5):
         #Question 2c
-        match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
+        # match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
 
         #Question 2d
-        match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
+        # match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
         
         #Question 2e
         # match_ransac_affine('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
@@ -308,20 +323,21 @@ if __name__ == "__main__":
     #Question 3
 
 
-    # #Question 4
-    # img_middle = cv2.imread('./data/landscape_5.jpg')
-    # queue1 = []
-    # for i in [(1,2),(3,4),(6,7),(8,9)]:
-    #     img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
-    #     img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
-    #     img = image_stitching(img1,img2,0.5)
-    #     queue1.append(img)
-    # queue2 = []
-    # for i in range(2):
-    #     img = image_stitching(queue1[2*i],queue1[2*i+1],0.5)
-    #     queue2.append(img)
-    # img = image_stitching(img_middle,queue2[0],0.5)
-    # img = image_stitching(img,queue2[1],0.5)
-    # cv2.imwrite('./q4/no_blending_panorama.jpg',img)
+    #Question 4
+    img_middle = cv2.imread('./data/landscape_5.jpg')
+    queue1 = []
+    for i in [(1,2),(3,4),(6,7),(8,9)]:
+        img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
+        img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
+        img = image_stitching(img1,img2,0.5)
+        queue1.append(img)
+    queue2 = []
+    for i in range(2):
+        img = image_stitching(queue1[2*i],queue1[2*i+1],0.5)
+        queue2.append(img)
+    img = image_stitching(img_middle,queue2[0],0.5)
+    img = image_stitching(img,queue2[1],0.5)
+    cv2.imwrite('./q4/no_blending_panorama.jpg',img)
+    
     
     
