@@ -222,9 +222,9 @@ def warp_and_combine(file1,file2,M):
 # I can certainly extend the image and do a visual localization, but for the sake of accuracy, I decide to
 # use open source algorithm to determine three vanish point. 
 def find_intrinsic():
-    pt1 = [240,-362]
-    pt2 = [-478,506]
-    pt3 = [752,486]
+    pt1 = [-2495.17781442,141.739796961]
+    pt2 = [4846.44493705,61.7491000707]
+    pt3 = [1849.3748115,5729.26427986]
     v1 = np.array(pt1+[1])
     v2 = np.array(pt2+[1])
     v3 = np.array(pt3+[1])
@@ -232,7 +232,7 @@ def find_intrinsic():
     r = np.linalg.svd(A)[2][-1]
     w = np.array([[r[0],0,r[1]],[0,r[0],r[2]],[r[1],r[2],r[3]]],dtype="float")
     K = np.linalg.inv(np.linalg.cholesky(w).T)
-    K = K/K[-1:-1]
+    K = K/K[-1,-1]
     print(K)
 def computeRow(pt_a,pt_b):
     xa,ya,za = pt_a
