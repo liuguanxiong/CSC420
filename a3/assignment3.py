@@ -205,8 +205,27 @@ def match_ransac_homo(file1,file2,threshold,inlier_threshold,k):
     plt.imshow(img),plt.show()
     return len(good)
 
-#Question 3
-def image_stitching(img1, img2, threshold):
+#Question 4
+def image_stitching(blending=True):
+    img_middle = cv2.imread('./data/landscape_5.jpg')
+    queue1 = []
+    for i in [(1,2),(3,4),(6,7),(8,9)]:
+        img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
+        img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
+        img = match_warp(img1,img2,0.5,blending=blending)
+        queue1.append(img)
+    queue2 = []
+    for i in range(2):
+        img = match_warp(queue1[2*i],queue1[2*i+1],0.5,blending=blending)
+        queue2.append(img)
+    img = match_warp(img_middle,queue2[0],0.5,blending=blending,img1_left=False)
+    img = match_warp(img,queue2[1],0.5,blending=blending)
+    if blending:
+        cv2.imwrite('./q4/blending_panorama.jpg',img)
+    else:
+        cv2.imwrite('./q4/no_blending_panorama.jpg',img)
+
+def match_warp(img1, img2, threshold, blending=False, img1_left=True):
     gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
     gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
     sift = cv2.xfeatures2d.SIFT_create()
@@ -229,12 +248,12 @@ def image_stitching(img1, img2, threshold):
     src_pts = np.float32([kp2[m.trainIdx].pt for m in good]).reshape(-1, 1, 2)
 
     M, mask = cv2.findHomography(src_pts,dst_pts,cv2.RANSAC,2.0)
-    # result = warpTwoImages(img1,img2,M)
-    result = warpTwoImages_blending(img1,img2,M)
+  
+    result = warpTwoImages(img1,img2,M,img1_left,blending)
 
     return result
 
-def warpTwoImages(img1, img2, H):
+def warpTwoImages(img1, img2, H, if_img1_left, blending):
     '''warp img2 to img1 with homograph H'''
     h1,w1 = img1.shape[:2]
     h2,w2 = img2.shape[:2]
@@ -247,51 +266,43 @@ def warpTwoImages(img1, img2, H):
     t = [-xmin,-ymin]
     Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
     result = cv2.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin))
-    result[t[1]:h1+t[1],t[0]:w1+t[0]] = img1
-
-    result = result[:,:-10,:]
-
-    return result
-
-def warpTwoImages_blending(img1, img2, H):
-    '''warp img2 to img1 with homograph H'''
-    h1,w1 = img1.shape[:2]
-    h2,w2 = img2.shape[:2]
-    pts1 = np.float32([[0,0],[0,h1],[w1,h1],[w1,0]]).reshape(-1,1,2)
-    pts2 = np.float32([[0,0],[0,h2],[w2,h2],[w2,0]]).reshape(-1,1,2)
-    pts2_ = cv2.perspectiveTransform(pts2, H)
-    pts = np.concatenate((pts1, pts2_), axis=0)
-    [xmin, ymin] = np.int32(pts.min(axis=0).ravel() - 0.5)
-    [xmax, ymax] = np.int32(pts.max(axis=0).ravel() + 0.5)
-    t = [-xmin,-ymin]
-    Ht = np.array([[1,0,t[0]],[0,1,t[1]],[0,0,1]]) # translate
-    result = cv2.warpPerspective(img2, Ht.dot(H), (xmax-xmin, ymax-ymin))
+    pts2_translated = cv2.perspectiveTransform(pts2,Ht.dot(H))
     img2_transformed = result.copy()
     result[t[1]:h1+t[1],t[0]:w1+t[0]] = img1
 
-    h = h1
-    w = int(np.abs(t[0]+w1-pts2_[0][0][0]))+1
-    left_border = int(min(t[0]+w1,pts2_[0][0][0]))
-    right_border = int(max(t[0]+w1,pts2_[0][0][0]))
-    print(w)
-    print(right_border-left_border)
-    alpha_mask = np.zeros((h,min(img1.shape[1],w)))
-    alpha_mask[:,0:int(w/2)] = 1.0
-    blur_alpha_mask = cv2.GaussianBlur(alpha_mask,(7,7),0)
-    blur_alpha_mask = blur_alpha_mask[:,:,None]
 
-    print(blur_alpha_mask.shape)
-    left = img1[:,-w:,:]*blur_alpha_mask
-    right = img2_transformed[t[1]:t[1]+h1,left_border:right_border,:]*(1.0-blur_alpha_mask)
-    result[t[1]:h1+t[1],left_border:right_border,:] = right+left
+    if blending:
+        if if_img1_left:
+            h = h1
+            w = int(np.abs(t[0]+w1-pts2_[0][0][0]))+1
+            left_border = int(min(t[0]+w1,pts2_[0][0][0]))
+            right_border = int(max(t[0]+w1,pts2_[0][0][0]))
+            alpha_mask = np.zeros((h,min(img1.shape[1],w)))
+            alpha_mask[:,0:int(w/2)] = 1.0
+            blur_alpha_mask = cv2.GaussianBlur(alpha_mask,(7,7),0)
+            blur_alpha_mask = blur_alpha_mask[:,:,None]
+            left = img1[:,-w:,:]*blur_alpha_mask
+            right = img2_transformed[t[1]:t[1]+h1,left_border:right_border,:]*(1.0-blur_alpha_mask)
+            result[t[1]:h1+t[1],left_border:right_border,:] = right+left
+            result = result[:,:-10,:]
+        else:
+            h = h1
+            left_border = int(t[0])
+            right_border = int(pts2_translated[2][0][0])
+            w = right_border - left_border
+            alpha_mask = np.zeros((h,min(img1.shape[1],w)))
+            alpha_mask[:,0:int(w/2)] = 1.0
+            blur_alpha_mask = cv2.GaussianBlur(alpha_mask,(21,21),0)
+            blur_alpha_mask = blur_alpha_mask[:,:,None]
 
-
-    result = result[:,:-10,:]
-    plt.imshow(result),plt.show()
-
+            left = img1[:,:w,:]*(1.0-blur_alpha_mask)
+            right = img2_transformed[t[1]:t[1]+h1,left_border:right_border,:]*(blur_alpha_mask)
+            result[t[1]:h1+t[1],left_border:right_border,:] = right+left
+            result = result[:,:-10,:]
+    else:
+        result = result[:,:-10,:]
 
     return result
-
 
 if __name__ == "__main__":
     # #Question 1
@@ -306,9 +317,9 @@ if __name__ == "__main__":
     #     percent_outlier = outlier[i]/matches
     #     percent_inlier.append(1-percent_outlier)
 
-    # percent_inlier=[0.5,0.5,0.5]
-    # #Question 2b
-    # minimum_iterations(percent_inlier)
+    percent_inlier=[0.5,0.5,0.5]
+    #Question 2b
+    minimum_iterations(percent_inlier)
 
     # for i in range(5):
         #Question 2c
@@ -324,20 +335,8 @@ if __name__ == "__main__":
 
 
     #Question 4
-    img_middle = cv2.imread('./data/landscape_5.jpg')
-    queue1 = []
-    for i in [(1,2),(3,4),(6,7),(8,9)]:
-        img1 = cv2.imread('./data/landscape_{}.jpg'.format(i[0]))
-        img2 = cv2.imread('./data/landscape_{}.jpg'.format(i[1]))
-        img = image_stitching(img1,img2,0.5)
-        queue1.append(img)
-    queue2 = []
-    for i in range(2):
-        img = image_stitching(queue1[2*i],queue1[2*i+1],0.5)
-        queue2.append(img)
-    img = image_stitching(img_middle,queue2[0],0.5)
-    img = image_stitching(img,queue2[1],0.5)
-    cv2.imwrite('./q4/no_blending_panorama.jpg',img)
+    # image_stitching(blending=True)
+    # image_stitching(blending=False)
     
     
     
