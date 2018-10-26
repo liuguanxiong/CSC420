@@ -94,10 +94,12 @@ def match(file1, file2, threshold):
 #Question 2b
 def minimum_iterations(percent_inlier):
     P = 0.99
+    result = []
     for p in percent_inlier:
         print('Affine:',np.log(1-P)/np.log(1-p**3))
-        print('Homography:',np.log(1-P)/np.log(1-p**3))
-
+        print('Homography:',np.log(1-P)/np.log(1-p**4))
+        result.append((np.log(1-P)/np.log(1-p**3),np.log(1-P)/np.log(1-p**4)))
+    return result
 
 #Question 2c
 def match_ransac_affine(file1,file2,threshold,inlier_threshold,k):
@@ -149,8 +151,8 @@ def match_ransac_affine(file1,file2,threshold,inlier_threshold,k):
         for y in range(img.shape[1]):
             if (img[x,y] == [0,0,0]).all():
                 img[x,y] = img2[x,y]
-    plt.imshow(img),plt.show()
-    return len(good)
+    cv2.imwrite("q2/ransac_affine_{}_{}".format(file1[5:-4],file2[5:]),img)
+    return best_matrix
 
 #Question 2d
 def match_ransac_homo(file1,file2,threshold,inlier_threshold,k):
@@ -202,8 +204,40 @@ def match_ransac_homo(file1,file2,threshold,inlier_threshold,k):
         for y in range(img.shape[1]):
             if (img[x,y] == [0,0,0]).all():
                 img[x,y] = img2[x,y]
-    plt.imshow(img),plt.show()
-    return len(good)
+    cv2.imwrite("q2/ransac_homo_{}_{}".format(file1[5:-4],file2[5:]),img)
+    return best_matrix
+
+def warp_and_combine(file1,file2,M):
+    img1 = cv2.imread(file1)
+    img2 = cv2.imread(file2)
+    img = cv2.warpPerspective(img1,M,(img2.shape[1],img2.shape[0]))
+    for x in range(img.shape[0]):
+        for y in range(img.shape[1]):
+            if (img[x,y] == [0,0,0]).all():
+                img[x,y] = img2[x,y]
+    cv2.imwrite("q2/using_bestM_{}".format(file2[5:]),img)
+
+#Question 3
+# I use project: https://github.com/SymenYang/Vanish-Point-Detection to help me find the vanish points,
+# I can certainly extend the image and do a visual localization, but for the sake of accuracy, I decide to
+# use open source algorithm to determine three vanish point. 
+def find_intrinsic():
+    pt1 = [-118863.0,64281.0]
+    pt2 = [2151.0,1937.0]
+    pt3 = [1044.0,1915.0]
+    v1 = np.array(pt1+[1])
+    v2 = np.array(pt2+[1])
+    v3 = np.array(pt3+[1])
+    A = np.array([computeRow(v1,v2),computeRow(v2,v3),computeRow(v3,v1)])
+    r = np.linalg.svd(A)[2][-1]
+    w = np.array([[r[0],0,r[1]],[0,r[0],r[2]],[r[1],r[2],r[3]]],dtype="float")
+    K = np.linalg.inv(np.linalg.cholesky(w).T)
+    K = K/K[-1:-1]
+    print(K)
+def computeRow(pt_a,pt_b):
+    xa,ya,za = pt_a
+    xb,yb,zb = pt_b
+    return [xa*xb+ya*yb,xa*zb+xb*za,ya*zb+yb*za,za*zb]
 
 #Question 4
 def image_stitching(blending=True):
@@ -308,31 +342,40 @@ if __name__ == "__main__":
     # #Question 1
     # find_h_and_w('data/door.jpeg')
 
-    # #Question 2a
-    # outlier = [8,11,2]
+    # #Question 2a  
     # image_files = ['data/im1.jpg','data/im2.jpg','data/im3.jpg']
-    # percent_inlier = []
     # for i in range(len(image_files)):
-    #     matches = match('data/BookCover.jpg', image_files[i], 0.78)
-    #     percent_outlier = outlier[i]/matches
-    #     percent_inlier.append(1-percent_outlier)
+    #     matches = match('data/BookCover.jpg', image_files[i], 0.80)
+    # percent_inlier = [0.5,0.5,0.5]
 
-    percent_inlier=[0.5,0.5,0.5]
     #Question 2b
-    minimum_iterations(percent_inlier)
+    # result = minimum_iterations(percent_inlier)
 
-    # for i in range(5):
-        #Question 2c
-        # match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
 
-        #Question 2d
-        # match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=1,k=50)
-        
-        #Question 2e
-        # match_ransac_affine('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.85,inlier_threshold=5,k=50)
+    #Question 2c
+    # match_ransac_affine('data/BookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[0][0]))
+    # match_ransac_affine('data/BookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[1][0]))
+    # match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[2][0]))
+
+    #Question 2d
+    # M1 = match_ransac_homo('data/BookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[0][1]))
+    # M2 = match_ransac_homo('data/BookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[1][1]))
+    # M3 = match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[2][1]))
+    
+    #Question 2e
+
+    # I manually set k=500 because two image has rare number of matches and I do not want to run the algorithm for too long.
+    # match_ransac_homo('data/SecondBookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=500)
+    # warp_and_combine('data/SecondBookCover.jpg','data/im1.jpg', M1)
+
+    # match_ransac_homo('data/SecondBookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=500)
+    # warp_and_combine('data/SecondBookCover.jpg','data/im2.jpg', M2)
+
+    # match_ransac_homo('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=500)
+    # warp_and_combine('data/SecondBookCover.jpg','data/im3.jpg', M3)
 
     #Question 3
-
+    find_intrinsic()
 
     #Question 4
     # image_stitching(blending=True)
