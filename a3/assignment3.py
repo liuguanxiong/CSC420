@@ -222,9 +222,9 @@ def warp_and_combine(file1,file2,M):
 # I can certainly extend the image and do a visual localization, but for the sake of accuracy, I decide to
 # use open source algorithm to determine three vanish point. 
 def find_intrinsic():
-    pt1 = [-2495.17781442,141.739796961]
-    pt2 = [4846.44493705,61.7491000707]
-    pt3 = [1849.3748115,5729.26427986]
+    pt1 = [-2495,142]
+    pt2 = [4846,62]
+    pt3 = [1849,5729]
     v1 = np.array(pt1+[1])
     v2 = np.array(pt2+[1])
     v3 = np.array(pt3+[1])
@@ -339,47 +339,48 @@ def warpTwoImages(img1, img2, H, if_img1_left, blending):
     return result
 
 if __name__ == "__main__":
-    # #Question 1
-    # find_h_and_w('data/door.jpeg')
+    #Question 1
+    find_h_and_w('data/door.jpeg')
 
-    # #Question 2a  
-    # image_files = ['data/im1.jpg','data/im2.jpg','data/im3.jpg']
-    # for i in range(len(image_files)):
-    #     matches = match('data/BookCover.jpg', image_files[i], 0.80)
-    # percent_inlier = [0.5,0.5,0.5]
+    #Question 2a  
+    image_files = ['data/im1.jpg','data/im2.jpg','data/im3.jpg']
+    for i in range(len(image_files)):
+        matches = match('data/BookCover.jpg', image_files[i], 0.80)
+    percent_inlier = [0.5,0.5,0.5]
+    percent_inlier = [0.7,0.7,0.8]
 
     #Question 2b
-    # result = minimum_iterations(percent_inlier)
+    result = minimum_iterations(percent_inlier)
 
 
     #Question 2c
-    # match_ransac_affine('data/BookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[0][0]))
-    # match_ransac_affine('data/BookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[1][0]))
-    # match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[2][0]))
+    match_ransac_affine('data/BookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[0][0]))
+    match_ransac_affine('data/BookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[1][0]))
+    match_ransac_affine('data/BookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[2][0]))
 
     #Question 2d
-    # M1 = match_ransac_homo('data/BookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[0][1]))
-    # M2 = match_ransac_homo('data/BookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[1][1]))
-    # M3 = match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[2][1]))
+    M1 = match_ransac_homo('data/BookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[0][1]))
+    M2 = match_ransac_homo('data/BookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[1][1]))
+    M3 = match_ransac_homo('data/BookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=np.ceil(result[2][1]))
     
     #Question 2e
 
     # I manually set k=500 because two image has rare number of matches and I do not want to run the algorithm for too long.
-    # match_ransac_homo('data/SecondBookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=500)
-    # warp_and_combine('data/SecondBookCover.jpg','data/im1.jpg', M1)
+    match_ransac_homo('data/SecondBookCover.jpg','data/im1.jpg',threshold=0.80,inlier_threshold=1,k=500)
+    warp_and_combine('data/SecondBookCover.jpg','data/im1.jpg', M1)
 
-    # match_ransac_homo('data/SecondBookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=500)
-    # warp_and_combine('data/SecondBookCover.jpg','data/im2.jpg', M2)
+    match_ransac_homo('data/SecondBookCover.jpg','data/im2.jpg',threshold=0.80,inlier_threshold=1,k=500)
+    warp_and_combine('data/SecondBookCover.jpg','data/im2.jpg', M2)
 
-    # match_ransac_homo('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=500)
-    # warp_and_combine('data/SecondBookCover.jpg','data/im3.jpg', M3)
+    match_ransac_homo('data/SecondBookCover.jpg','data/im3.jpg',threshold=0.80,inlier_threshold=1,k=500)
+    warp_and_combine('data/SecondBookCover.jpg','data/im3.jpg', M3)
 
     #Question 3
     find_intrinsic()
 
     #Question 4
-    # image_stitching(blending=True)
-    # image_stitching(blending=False)
+    image_stitching(blending=True)
+    image_stitching(blending=False)
     
     
     
