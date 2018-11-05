@@ -5,6 +5,7 @@ import sys
 import tarfile
 import tensorflow as tf
 import zipfile
+import cv2
 
 from distutils.version import StrictVersion
 from collections import defaultdict
@@ -144,5 +145,6 @@ if __name__ == '__main__':
             instance_masks=output_dict.get('detection_masks'),
             use_normalized_coordinates=True,
             line_thickness=8)
-        plt.figure(figsize=IMAGE_SIZE)
-        plt.imshow(image_np),plt.show()
+        cv2.imwrite('/home/guanxiong/Desktop/CSC420/a4/q2b_data/Detect_{}'.format(image_path[-10:]),image_np)
+        # plt.figure(figsize=IMAGE_SIZE)
+        # plt.imshow(image_np),plt.show()
