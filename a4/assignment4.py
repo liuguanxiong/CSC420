@@ -8,20 +8,16 @@ np.seterr(divide='ignore')
 def calculate_depth():
     directory = './data/test/results/'
     files = (f for f in os.listdir(directory) if f.endswith('left_disparity.png'))
-    print(files)
     for f in files:
         depth(f, directory)
 def depth(file, directory):
-    f = 0.721537700
-    b = 0.5327119288
-    img = cv2.imread(directory + file,0)
-    depth = np.zeros((img.shape[0],img.shape[1]))
-    for x in range(img.shape[0]):
-        for y in range(img.shape[1]):
-            depth[x,y] = b*f/img[x,y]
-    cv2.imwrite('./q2a_data/depth_{}'.format(file),depth*255)
+    f = 721.537700
+    baseline = 0.5327119288
+    disparity = cv2.imread(directory + file,0)
+    depth = np.divide(f*baseline,disparity,where=disparity!=0)
+    cv2.imwrite('./q2a_data/depth_{}'.format(file),depth)
 
-def draw_box():
+def convertToObject():
     files = []
     scores = []
     classes = []
@@ -44,39 +40,100 @@ def draw_box():
     y_top = np.array(y_top)
     x_right = np.array(x_right)
     y_bot = np.array(y_bot)
+    return files,scores,classes,x_left,y_top,x_right,y_bot
+
+def draw_box(threshold):
+    files,scores,classes,x_left,y_top,x_right,y_bot = convertToObject()
     font = cv2.FONT_HERSHEY_PLAIN
 
     for i in range(len(files)):
         path = './data/test/left/' + files[i]
         img = cv2.imread(path)
-        x_left *= img.shape[0]
-        y_top *= img.shape[1]
-        x_right *= img.shape[0]
-        y_bot *= img.shape[1]
-        print(path)
         for b in range(len(scores[i])):
-            print('class:',classes[i][b])
-            print('score:',scores[i][b])
-            if classes[i][b] == 1 and scores[i][b] > 0.25:
-                cv2.putText(img,'person',(int(y_top[i][b]),int(x_left[i][b])),font,1,(255,255,255),1,cv2.LINE_AA)
-                cv2.rectangle(img,(int(y_top[i][b]),int(x_left[i][b])),(int(y_bot[i][b]),int(x_right[i][b])),(0,0,255),1)
-            if classes[i][b] == 2 and scores[i][b] > 0.25:
-                cv2.putText(img,'bicycle',(int(y_top[i][b]),int(x_left[i][b])),font,1,(255,255,255),1,cv2.LINE_AA)
-                cv2.rectangle(img,(int(y_top[i][b]),int(x_left[i][b])),(int(y_bot[i][b]),int(x_right[i][b])),(0,255,0),1)
-            if classes[i][b] == 3 and scores[i][b] > 0.25:
-                print('hhhhhhhhh')
-                cv2.putText(img,'car',(int(y_top[i][b]),int(x_left[i][b])),font,1,(255,255,255),1,cv2.LINE_AA)
-                cv2.rectangle(img,(int(y_top[i][b]),int(x_left[i][b])),(int(y_bot[i][b]),int(x_right[i][b])),(255,0,0),1)
-            if classes[i][b] == 10 and scores[i][b] > 0.25:
-                cv2.putText(img,'traffic_light',(int(y_top[i][b]),int(x_left[i][b])),font,1,(255,255,255),1,cv2.LINE_AA)
-                cv2.rectangle(img,(int(y_top[i][b]),int(x_left[i][b])),(int(y_bot[i][b]),int(x_right[i][b])),(0,255,255),1)
-        plt.imshow(img),plt.show()
+            yt = int(y_top[i][b]*img.shape[1])
+            xl = int(x_left[i][b]*img.shape[0])
+            yb = int(y_bot[i][b]*img.shape[1])
+            xr = int(x_right[i][b]*img.shape[0])
+            if classes[i][b] == 1 and scores[i][b] > threshold:
+                cv2.putText(img,'person',(yt,xl),font,2,(0,165,255),1,cv2.LINE_AA)
+                cv2.rectangle(img,(yt,xl),(yb,xr),(255,0,0),2)
+            if classes[i][b] == 2 and scores[i][b] > threshold:
+                cv2.putText(img,'bicycle',(yt,xl),font,2,(0,165,255),1,cv2.LINE_AA)
+                cv2.rectangle(img,(yt,xl),(yb,xr),(0,255,0),2)
+            if classes[i][b] == 3 and scores[i][b] > threshold:
+                cv2.putText(img,'car',(yt,xl),font,2,(0,165,255),1,cv2.LINE_AA)
+                cv2.rectangle(img,(yt,xl),(yb,xr),(0,0,255),2)
+            if classes[i][b] == 10 and scores[i][b] > threshold:
+                cv2.putText(img,'traffic_light',(yt,xl),font,2,(0,165,255),1,cv2.LINE_AA)
+                cv2.rectangle(img,(yt,xl),(yb,xr),(255,255,0),2)
+        cv2.imwrite('./q2b_data/Detect_{}'.format(files[i]),img)
+
+
+def compute3D(threshold):
+    f = 721.537700
+    baseline = 0.5327119288
+    px = 609.559300
+    py = 172.854000
+
+    files,scores,classes,x_left,y_top,x_right,y_bot = convertToObject()
+    object_3D = []
+    for i in range(len(files)):
+        path = './data/test/left/' + files[i]
+        img = cv2.imread(path)
+        disparity = cv2.imread('./data/test/results/' + files[i][:-4] + '_left_disparity.png',0)
+        depth = np.divide(f * baseline,disparity,where=disparity!=0)
+        dic = {'person':[],'bicycle':[],'car':[],'traffic_light':[]}
+        for b in range(len(scores[i])):
+            yt = int(y_top[i][b]*img.shape[1])
+            xl = int(x_left[i][b]*img.shape[0])
+            yb = int(y_bot[i][b]*img.shape[1])
+            xr = int(x_right[i][b]*img.shape[0])
+            xleft = (xl+xr)//2
+            yleft = (yt+yb)//2
+            Z = depth[xleft,yleft]
+            X = (yleft-px)*Z/f
+            Y = (xleft-py)*Z/f
+            if classes[i][b] == 1  and scores[i][b] > threshold:
+                dic['person'].append((X,Y,Z))
+            if classes[i][b] == 2 and scores[i][b] > threshold:
+                dic['bicycle'].append((X,Y,Z))
+            if classes[i][b] == 3 and scores[i][b] > threshold:
+                dic['car'].append((X,Y,Z))
+            if classes[i][b] == 10 and scores[i][b] > threshold:
+                dic['traffic_light'].append((X,Y,Z))
+        object_3D.append(dic)
+    return object_3D
+
+# def segmentation(object_3D):
+    # for x in range(len()):
+
+def text_des(object_3D):
+    files,scores,classes,x_left,y_top,x_right,y_bot = convertToObject()
+    for i in range(len(object_3D)):
+        if files[i] == '004945.jpg' or files[i] == '004964.jpg' or files[i] == '005002.jpg':
+            print('===========================Result for {}============================'.format(files[i]))
+            for key in object_3D[i]:
+                for tup in object_3D[i][key]:
+                    X, Y, Z = tup
+                    dist = np.linalg.norm(np.array([X,Y,Z]))
+                    if X >= 0:
+                        print('There is a {} {} meters to your right'.format(key,np.abs(X)))
+                    else:
+                        print('There is a {} {} meters to your left'.format(key,np.abs(X)))
+                    print('It is {} meters away from you'.format(dist))
+                    print(' ')
+
+    
+    
+
+
 
 
 
 
 if __name__ == '__main__':
-    # calculate_depth()
-    draw_box()
-
+    calculate_depth()
+    draw_box(0.3)
+    object_3D = compute3D(0.3)
+    text_des(object_3D)
 
