@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 np.seterr(divide='ignore')
 
+#Question 2a
 def calculate_depth():
     directory = './data/test/results/'
     files = (f for f in os.listdir(directory) if f.endswith('left_disparity.png'))
@@ -17,6 +18,11 @@ def depth(file, directory):
     depth = np.divide(f*baseline,disparity,where=disparity!=0)
     cv2.imwrite('./q2a_data/depth_{}'.format(file),depth)
 
+#Question 2b
+#Save part: code snippet modified based on output_dict in TensorFlow tutorial
+
+
+#Read part: as follow
 def convertToObject():
     files = []
     scores = []
@@ -42,6 +48,7 @@ def convertToObject():
     y_bot = np.array(y_bot)
     return files,scores,classes,x_left,y_top,x_right,y_bot
 
+#Question 2c
 def draw_box(threshold):
     files,scores,classes,x_left,y_top,x_right,y_bot = convertToObject()
     font = cv2.FONT_HERSHEY_PLAIN
@@ -68,7 +75,7 @@ def draw_box(threshold):
                 cv2.rectangle(img,(yt,xl),(yb,xr),(255,255,0),2)
         cv2.imwrite('./q2c_data/Detect_{}'.format(files[i]),img)
 
-
+#Question 2d
 def compute3D(threshold):
     f = 721.537700
     baseline = 0.5327119288
@@ -104,6 +111,7 @@ def compute3D(threshold):
         object_3D.append(dic)
     return object_3D
 
+#Question 2e
 def segmentation(threshold):
     f = 721.537700
     baseline = 0.5327119288
@@ -152,7 +160,7 @@ def segmentation(threshold):
         # plt.imshow(blank_img),plt.show()
         cv2.imwrite('./q2e_data/Segmentation_{}'.format(files[i]),blank_img)
        
-
+#Question 2f
 def text_des(object_3D):
     files,scores,classes,x_left,y_top,x_right,y_bot = convertToObject()
     for i in range(len(object_3D)):
