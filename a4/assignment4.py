@@ -19,8 +19,44 @@ def depth(file, directory):
     cv2.imwrite('./q2a_data/depth_{}'.format(file),depth)
 
 #Question 2b
-#Save part: code snippet modified based on output_dict in TensorFlow tutorial
+#Save part: code snippet modified based on output_dict in TensorFlow tutorial code
 
+"""
+df = pd.DataFrame(columns=["path","scores","classes","x_left","y_top","x_right","y_bot"])
+for image_path in TEST_IMAGE_PATHS:
+    image = Image.open(image_path)
+
+    # the array based representation of the image will be used later in order to prepare the
+    # result image with boxes and labels on it.
+    image_np = load_image_into_numpy_array(image)
+
+    # Expand dimensions since the model expects images to have shape: [1, None, None, 3]
+    image_np_expanded = np.expand_dims(image_np, axis=0)
+
+    # Actual detection.
+    output_dict = run_inference_for_single_image(image_np, detection_graph)
+    
+    # Save to csv
+    filename = image_path[-10:]
+    scores = []
+    classes = []
+    x_left = []
+    y_top = []
+    x_right = []
+    y_bot = []
+    for i in range(len(output_dict['detection_scores'])):
+        if output_dict['detection_scores'][i] != 0:
+            scores.append(str(output_dict['detection_scores'][i]))
+            classes.append(str(output_dict['detection_classes'][i]))
+            x_left.append(str(output_dict['detection_boxes'][i][0]))
+            y_top.append(str(output_dict['detection_boxes'][i][1]))
+            x_right.append(str(output_dict['detection_boxes'][i][2]))
+            y_bot.append(str(output_dict['detection_boxes'][i][3]))
+    df.loc[-1] = [filename,','.join(scores),','.join(classes),','.join(x_left),','.join(y_top),','.join(x_right),','.join(y_bot)]
+    df.index += 1
+    df = df.sort_index()
+df.to_csv('/home/guanxiong/Desktop/detections.csv')
+"""
 
 #Read part: as follow
 def convertToObject():
@@ -157,7 +193,6 @@ def segmentation(threshold):
             if classes[i][b] == 10 and scores[i][b] > threshold:
                 cv2.putText(blank_img,'traffic_light',(yt,xl),font,2,(0,165,255),1,cv2.LINE_AA)
                 cv2.rectangle(blank_img,(yt,xl),(yb,xr),(255,255,0),2)
-        # plt.imshow(blank_img),plt.show()
         cv2.imwrite('./q2e_data/Segmentation_{}'.format(files[i]),blank_img)
        
 #Question 2f
