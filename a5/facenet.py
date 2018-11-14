@@ -51,3 +51,6 @@ def load_dataset():
 
 if __name__ == "__main__":
     load_dataset()
+    fr_model = load_facenet()
+    a = img_to_encoding('saved_faces/face_image_0.jpg',fr_model)
+    print(a)
