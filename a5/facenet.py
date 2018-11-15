@@ -58,6 +58,9 @@ def k_clustering(model):
     kmeans = KMeans(n_clusters=6).fit(imgs_des)
     return kmeans
 
+def save_cluster_center(kmeans):
+    np.save('./cluster_center.npy',kmeans.cluster_centers_)
+
 def inverted_index(kmeans, model):
     dic = {}
     for f in os.listdir('./saved_faces'):
@@ -72,6 +75,5 @@ if __name__ == "__main__":
     load_dataset()
     fr_model = load_facenet()
     kmeans = k_clustering(fr_model)
-    print(kmeans)
+    save_cluster_center(kmeans)
     dic = inverted_index(kmeans,fr_model)
-    print(dic[0])
