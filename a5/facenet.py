@@ -77,3 +77,4 @@ if __name__ == "__main__":
     kmeans = k_clustering(fr_model)
     save_cluster_center(kmeans)
     dic = inverted_index(kmeans,fr_model)
+    print(dic)
