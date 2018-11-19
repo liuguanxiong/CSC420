@@ -43,6 +43,7 @@ if __name__ == "__main__":
     (train_images, train_labels), (test_images, test_labels) = fashion_mnist.load_data()
     class_names = ['T-shirt/top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle boot']
     bar_graph(train_labels,test_labels,class_names)
+    # Here I do not do data seperation because they are pre-seperated already according to Elsa Riachi
     train_images = train_images / 255.0
     test_images = test_images / 255.0
     model = keras.Sequential([
